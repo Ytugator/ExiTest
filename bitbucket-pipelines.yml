@@ -1,0 +1,30 @@
+image: python:3.12
+
+definitions:
+  steps:
+    - step: &run-tests
+        name: Run test
+        caches:
+          - pip
+        script:
+          # Download and Install tools
+          - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          - wget https://github.com/allure-framework/allurectl/releases/latest/download/allurectl_linux_amd64 -O ./allurectl
+          - chmod +x ./allurectl
+          - export PYTHONPATH=${PYTHONPATH}:`pwd`
+          # Configurate report params
+          - export ALLURE_RESULTS='tests/allure-report/raw/' && mkdir -p ${ALLURE_RESULTS}
+          - export ALLURE_PROJECT_ID=1
+          - export ALLURE_LAUNCH_NAME="${BITBUCKET_REPO_FULL_NAME} - $BITBUCKET_BUILD_NUMBER"
+          - export ALLURE_LAUNCH_TAGS="regular"
+          # Exec the tests with allurectl as wrapper for execution
+          - ./allurectl watch -- pytest -v tests/* --alluredir=${ALLURE_RESULTS}
+
+
+pipelines:
+  pull-requests:
+    '**':
+      - step:
+          <<: *run-tests
+
+
